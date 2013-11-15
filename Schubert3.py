@@ -1,49 +1,44 @@
 """
-The first package for the computation in intersection theory is Schubert in 
-Maple which written by Sheldon Katz and Stein A. Str\o mme from 1992, and had 
-been revised and updated to new versions of Maple by Jan-Magnus \O kland. 
+The first package for computations in intersection theory and enumerative geometry 
+is Schubert in Maple which written by Sheldon Katz and Stein A. Str\o mme from 1992, 
+and had been revised and updated to new versions of Maple by Jan-Magnus \O kland. 
 However, it is no longer actively supported. The second package is Schubert2
 in Macaulay2 which has being developed by Daniel R. Grayson, Michael E. Stillman
 , Stein A. Str\o mme, David Eisenbud and Charley Crissman.
 
 Our package is Schubert3 which developed on Sage and written by Python 
-programming language. This package supports the computation in intersection 
-theory and enumerative geoemtry. It deals with abstract varieties, vector 
-bundles on abstract varieties, morphisms between abstract varieties, equivariant
-vector bundles on abstract varieties endowed with a torus action and moduli 
-spaces of stable maps. 
+programming language. This package provides the key functionality necessary for 
+computations in intersection theory and enumerative geometry. It deals with 
+abstract varieties, vector bundles on abstract varieties, morphisms between 
+abstract varieties, equivariant vector bundles on abstract varieties endowed 
+with a torus action, moduli spaces of stable maps, and graphs.
 
 In Schubert3, an abstract variety is represented by a nonnegative integer which 
 is its dimension, a list of variables which are the minimal generators of its 
 Chow ring, a list of positive integers which are the degrees of the variables as
 a graded ring, and a list of polynomials which are the relations between the 
-variables such that we can determine its Chow ring. For example, an 
-n-dimensional projective space P^n is represented by its dimension n, a variable
-h of degree 1 which is the class of a hyperplane, and a relation h^{n+1}. 
-A Grassmannian G(k,n) is represented by its dimension k(n-k), n-k variables 
-\sigma_1, ..., \sigma_{n-k} with deg(\sigma_i) = i and n-k relations 
-\sigma_{1^i}, i = k+1, ..., n, where \sigma_i and \sigma_{1^i}  are the special 
-Schubert classes on this Grassmannian. 
+variables such that we can determine its Chow ring. Sometime the relations are 
+not known, but we must know its monomial values. This allows us to compute the 
+degree of a certain zero-dimensional cycle class. Moreover, we also developed an
+alternative method for computing the degree of a zero-dimensional cycle class 
+via Bott's formula. 
 
-There are two ways to give a vector bundle on an abstract variety in Schubert3. 
-The first one is represented by a positive integer which is the rank of this 
-vector bundle, and an element of the Chow ring which is the total Chern class of 
-this vector bundle. The second one is represented by only an element of the Chow 
-ring which is the Chern character of this vector bundle. The idea for 
-implementation of vector bundles is based on the splitting principle. 
+There are two ways to give a vector bundle E on an abstract variety in Schubert3. 
+The first one is to represent E by a positive integer which is the rank of E, 
+and an element of the Chow ring which is the total Chern class of E. The second 
+one is to represent E by only an element of the Chow ring which is the Chern 
+character of E. The main idea for the implementation of vector bundles is based 
+on the splitting principle. A morphism between two abstract varieties is 
+represented by its pullback homomorphism. 
 
-A morphism between two abstract varieties is represented by its pullback which 
-is a homomorphism of the corresponding Chow rings. Moreover, we also developed a 
-new method for computing the degrees of zero-dimensional cycle classes using 
-Bott's formula. For this, we implemented some of new computational odjects such 
-as the equivariant vector bundles on the abstract varieties endowed with a torus 
-action and the moduli spaces of stable maps which were introduced by Kontsevich. 
-An equivariant vector bundle is represented by a list of integers or polynomials 
-which are the weights of a torus action on the ordinary vector bundle. A moduli 
-space of stable maps is represented by a projective space and a positive integer 
-which is the degree of the stable maps. We also implemented a combinatorial 
-object which allows us to present the fixed point components of a torus action 
-on the moduli spaces of stable maps.
+In order to use Bott's formula for computing the degree of a zero-dimensional 
+cycle class, we have to deal with some computational odjects such as equivariant
+vector bundles on abstract varieties endowed with a torus action and moduli 
+spaces of stable maps. An equivariant vector bundle is represented by its 
+weights of the torus action on the ordinary vector bundle. A moduli space of 
+stable maps is represented by a projective space and a positive integer which is
+the degree of stable maps. We also deal with graphs which allow us to represent 
+the fixed point components of a torus action on a moduli space of stable maps.
 
 In order to use Schubert3, we first must attach the file Schubert3.py to a 
 running session using the %attach command in Sage as follows:
@@ -4392,7 +4387,8 @@ class ToricVariety(Variety):
         else:
             var = 'x'
         self._degs = [1]*len(fan.cones(1))
-        v = list(normalize_names(len(fan.cones(1)),var))
+        v = list(normalize_names(len(fan.cones(1))+1,var))
+        v.pop(0)
         R = PolynomialRing(QQ,v)
         self._var = R.gens()
         I = fan.Stanley_Reisner_ideal(R) + fan.linear_equivalence_ideal(R)
@@ -5243,3 +5239,30 @@ def multiple_cover(d):
         t = M.equivariant_normal_bundle(p)
         r = r + s/(F[p]*t)
     return r
+
+def Gromov_Witten_invariants_for_lines(k,a,b):
+    G = Grassmannian(2,k+2)
+    S = G.tautological_subbundle().dual()
+    B = S.symmetric_power(k+2)
+    qa = G.schubert_class([a-1])
+    qb = G.schubert_class([b-1])
+    qc = G.schubert_class([k-a-b-1])
+    return G.integral(B.top_chern_class()*qa*qb*qc)
+
+def Gromov_Witten_invariants_lines_Bott_formula(k,a,b):
+    G = Grassmannian(2,k+2)
+    F = G.fixed_points()
+    result = 0
+    for p in F:
+        S = G.equivariant_subbundle(p)
+        Q = G.equivariant_quotient_bundle(p)
+        D = S.dual()
+        B = D.symmetric_power(k+2)
+        qa = Q.chern_class(a-1)
+        qb = Q.chern_class(b-1)
+        qc = Q.chern_class(k-a-b-1)
+        s = B.euler_class()*qa*qb*qc
+        T = G.equivariant_tangent_bundle(p)
+        t = T.euler_class()
+        result = result + s/t
+    return result
