@@ -1,10 +1,11 @@
 """
-The first package for computations in intersection theory and enumerative geometry 
-is Schubert in Maple which written by Sheldon Katz and Stein A. Str\o mme from 1992, 
-and had been revised and updated to new versions of Maple by Jan-Magnus \O kland. 
-However, it is no longer actively supported. The second package is Schubert2
-in Macaulay2 which has being developed by Daniel R. Grayson, Michael E. Stillman
-, Stein A. Str\o mme, David Eisenbud and Charley Crissman.
+The first package for computations in intersection theory and enumerative 
+geometry is Schubert in Maple which written by Sheldon Katz and Stein A. Stromme
+from 1992, and had been revised and updated to new versions of Maple by 
+Jan-Magnus Okland. However, it is no longer actively supported. 
+The second package is Schubert2 in Macaulay2 which has being developed by 
+Daniel R. Grayson, Michael E. Stillman, Stein A. Str\o mme, David Eisenbud and 
+Charley Crissman.
 
 Our package is Schubert3 which developed on Sage and written by Python 
 programming language. This package provides the key functionality necessary for 
