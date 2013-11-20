@@ -1387,7 +1387,7 @@ class EquivariantVectorBundle(SageObject):
     """
     def __init__(self, variety, weights):
         self._variety = variety
-        self._weights = weights
+        self._weights = list(weights)
         pass
 
     def _repr_(self):
@@ -1535,7 +1535,7 @@ class EquivariantVectorBundle(SageObject):
         Sym = SymmetricFunctions(QQ)
         E = Sym.elementary()
         f = E[k].expand(self.rank())
-        return f(self.weights().list())
+        return f(self.weights())
 
     def euler_class(self):
         """
@@ -2959,7 +2959,7 @@ class Morphism(SageObject):
             sage: B.integral1(f.double_point())
             104
         """
-        return "A morphism between %s and %s"%(self._V1, self._V2)
+        return "A morphism from %s to %s"%(self._V1, self._V2)
 
     def is_Morphism(self):
         """
@@ -3021,7 +3021,7 @@ class Morphism(SageObject):
     def pullback(self, arg):
         """
         Returns the pullback of this morphism.
-        
+
         EXAMPLES::
 
             sage: P2 = ProjectiveSpace(2,'h')
