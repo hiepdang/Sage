@@ -6,7 +6,7 @@ The second package is Schubert2 in Macaulay2 which has being developed by
 Daniel R. Grayson, Michael E. Stillman, Stein A. Str\o mme, David Eisenbud and 
 Charley Crissman.
 
-Our package is Schubert3 which developed on Sage and written by Python 
+Our package is Schubert3 which developed on Sage and written in the Python 
 programming language. This package provides the key functionality necessary for 
 computations in intersection theory and enumerative geometry. It deals with 
 abstract varieties, vector bundles on abstract varieties, morphisms between 
