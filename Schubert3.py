@@ -3230,6 +3230,34 @@ class Morphism(SageObject):
         B = part(N._chern_class,n)
         return A - B
 
+        def triple_point(self):
+        """
+        Returns the triple-point class of this morphism.
+
+        EXAMPLES::
+
+            sage:        
+        """
+        n = -self.dim()
+        N = self.normal_bundle()
+        A = self.pullback(self.pushforward(self.double_point()))-2*part(N._chern_class,n)*self.double_point()
+        B = sum(2**(n-i)*part(N._chern_class,i)*part(N._chern_class,2*n-i) for i in range(n))
+        return A + B
+
+    def quadruple_point(self):
+        """
+        Return the quadruple-point class of morphisms have codimension 1.
+
+        EXAMPLES::
+
+            sage:
+        """
+        N = self.normal_bundle()
+        A = self.pullback(self.pushforward(self.triple_point())) - 3*part(N._chern_class,1)*self.triple_point()
+        B = 6*part(N._chern_class,2)*self.double_point()
+        C = 6*(part(N._chern_class,1)*part(N._chern_class,2)+2*part(N._chern_class,3))
+        return A + B - C
+
 ################################################################################
 
 class Curve(Variety):
