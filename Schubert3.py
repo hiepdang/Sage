@@ -924,6 +924,363 @@ class Base(Variety):
         w = self._degs
         return PolynomialRing(QQ, self._var, order=TermOrder('wdegrevlex',w))
 
+################################################################################
+######################### Projective spaces ####################################
+################################################################################
+
+class ProjectiveSpace(Variety):
+    """
+    Makes a projective space as a variety.
+    Its Chow ring is the polynomial ring in one variable 'var' (default 'h'),
+    that is the hyperplane class.
+    """
+    def __init__(self, n, var=None):
+        self._dim = n
+        if var is not None:
+            pass
+        else:
+            var = 'h'
+        self._degs = [1]
+        #R = PolynomialRing(QQ, var)
+        R = PolynomialRing(QQ,var,order=TermOrder('wdegrevlex',self._degs))
+        self._var = R.gens()
+        h = R.gen()
+        self._rels = [h**(n+1)]
+        self._point = h**n
+        pass
+
+    def _repr_(self):
+        """
+        Returns a string representation of this projective space.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3); P
+            A projective space of dimension 3
+            sage: P.chow_ring()
+            Univariate Quotient Polynomial Ring in h over Rational Field
+            with modulus h^4
+            sage: P.monomial_values()
+            {h^3: 1}
+            sage: P.additive_basis()
+            ({0: [1], 1: [h], 2: [h^2], 3: [h^3]},
+            {0: [1], 1: [h], 2: [h^2], 3: [h^3]})
+            sage: P.betti_numbers()
+            [1, 1, 1, 1]
+        """
+        return "A projective space of dimension %s"%(self._dim)
+
+    def is_projective_space(self):
+        """
+        """
+        return True
+
+    def hyperplane(self):
+        """
+        Returns the hyperplane class of this projective space
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3)    
+            sage: h = P.hyperplane(); h
+            h
+            sage: P = ProjectiveSpace(3,'H')
+            sage: h = P.hyperplane(); h
+            H
+        """
+        return self._var[0]
+
+    def O(self, n):
+        """
+        Returns the line bundle on this projective space such that 
+        the first Chern class is n*h.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3)
+            sage: L = P.O(1)
+            sage: L.total_chern_class()
+            h + 1
+        """
+        h = self.hyperplane()
+        return VectorBundle(self,rank=1,chern_class=1+n*h)
+
+    def tangent_bundle(self):
+        """
+        Returns the tangent bundle of this projective space.
+        
+        EXAMPLES:
+        
+            sage: P = ProjectiveSpace(3)
+            sage: T = P.tangent_bundle(); T
+            A vector bundle of rank 3 on A projective space of dimension 3
+            sage: T.total_chern_class()
+            4*h^3 + 6*h^2 + 4*h + 1
+            sage: T.chern_character()
+            2/3*h^3 + 2*h^2 + 4*h + 3
+            sage: T.todd_class()
+            h^3 + 11/6*h^2 + 2*h + 1
+            sage: T.rank() == P.dim()
+            True
+        """
+        n = self._dim
+        R = PolynomialRing(QQ, self._var)
+        h = R.gen()
+        f = (1+h)**(n+1) - h**(n+1)
+        return VectorBundle(self, rank=n, chern_class=f)
+
+    def cotangent_bundle(self):
+        """
+        Returns the cotangent bundle of this projective space.
+        
+        EXAMPLES::
+        
+            sage: P = ProjectiveSpace(3)
+            sage: C = P.cotangent_bundle(); C
+            A vector bundle of rank 3 on A projective space of dimension 3
+            sage: C.total_chern_class()
+            -4*h^3 + 6*h^2 - 4*h + 1
+            sage: C.chern_character()
+            -2/3*h^3 + 2*h^2 - 4*h + 3
+            sage: C.todd_class()
+            -h^3 + 11/6*h^2 - 2*h + 1
+        """
+        return self.tangent_bundle().dual()
+
+    def todd_class(self):
+        """
+        Returns the Todd class of this projective space.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3)
+            sage: P.todd_class()
+            h^3 + 11/6*h^2 + 2*h + 1
+        """
+        return self.tangent_bundle().todd_class()
+
+    def poincare_polynomial(self, variable_name='t'):
+        """
+        Returns the Poincare polynomial of this projective space.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3)
+            sage: P.poincare_polynomial()
+            t^3 + t^2 + t + 1
+        """
+        R = PolynomialRing(ZZ, variable_name)
+        t = R.gen()
+        def f(m):
+            g = 1
+            for i in range(1,m+1):
+                g = g*(1-(t**i))
+            return g
+        return f(self._dim +1)//(f(1)*f(self._dim))
+
+    def betti(self):
+        """
+        Returns the list of Betti numbers of this projective space.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(3)
+            sage: P.betti()
+            [1, 1, 1, 1]
+        """
+        return [self.poincare_polynomial()[i] for i in range(self._dim+1)]
+
+    def GW_invariant(self, d, l):
+        """
+        Returns the Gromov-Witten invariants for this projective space.
+
+        INPUT: 
+            d is the degree
+            l is a list of non-negative integers: for example the number 3
+            denotes the class h^3.
+
+        OUTPUT:
+            The number of degree d curves meeting some general subvarieties in
+            this projective space.
+
+        EXAMPLES::
+
+            Computing the number of lines meeting 4 general lines in P^3.
+
+            sage: P = ProjectiveSpace(3)
+            sage: P.GW_invariant(1,[2,2,2,2])
+            2
+
+            Computing the number of conics meeting 8 general lines in P^3.
+
+            sage: P = ProjectiveSpace(3)
+            sage: P.GW_invariant(2,[2]*8)            
+            92
+        """
+        r = self._dim
+        l.sort()
+        l.reverse()
+        n = len(l)
+        for i in l:
+            if i > r:
+                return 0
+            pass
+        if sum(l) != r*d + r + d + n - 3:
+            return 0
+        elif n == 0 or n == 1:
+            return 0
+        elif d == 0:
+            if n == 3 and sum(l) == r:
+                return 1
+            else:
+                return 0
+        elif n == 2:
+            if d == 1 and l == [r,r]:
+                return 1
+            else:
+                return 0
+        else:
+            if l[-1] == 0:
+                return 0
+            elif l[-1] == 1:
+                l.pop(-1)
+                return d*self.GW_invariant(d,l)
+            elif r == 2:
+                if l == [2]*(3*d-1):
+                    return kontsevich(d)
+                else:
+                    return 0
+            else:
+                l1 = l[-1] - 1
+                l2 = 1
+                ll = [l2] + [l[i] for i in range(n-2)] + [l1+l[n-2]]
+                res = self.GW_invariant(d,ll)
+                S = bipart([l[i] for i in range(n-3)])
+                for s in S:
+                    A = s[0]
+                    nA = len(A)
+                    cA = sum(A)
+                    B = s[1]
+                    for dA in range(1,d+1):
+                        dB = d - dA
+                        e = r*dA + r + dA + nA - cA - l1 - l[n-2]
+                        if e >= 0 and e <= r:
+                            a = self.GW_invariant(dA,[l1,l[n-2]]+A+[e])
+                            b = self.GW_invariant(dB,[l2,l[n-3]]+B+[r-e])
+                            res = res + a*b
+                        f = r*dA + r + dA + nA - cA - l1 - l2
+                        if f >= 0 and f <= r:
+                            x = self.GW_invariant(dA,[l1,l2]+A+[f])
+                            y = self.GW_invariant(dB,[l[n-2],l[n-3]]+B+[r-f])
+                            res = res - x*y
+                return res
+
+    Gromov_Witten_invariant = GW_invariant
+
+    def equivariant_chow_ring(self, dimT, T):
+        """
+        Returns the equivariant Chow ring of this projective space. 
+
+        Input: 
+            dimT : dimension of torus that acts on this projective space.
+            T : list of weights of the action on this projective space.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(4)
+            sage: R = P.equivariant_chow_ring(1,[1,1,1,1,1])
+            sage: I = R.defining_ideal()
+            sage: f = I.gen(0)
+            sage: factor(f)
+            (h + t)^5
+            sage: R = P.equivariant_chow_ring(5,[1,1,1,1,1])
+            sage: I = R.defining_ideal()
+            sage: f = I.gen(0)
+            sage: factor(f)
+            (h + p4) * (h + p3) * (h + p2) * (h + p1) * (h + p0)
+        """
+        if len(T) != self._dim + 1:
+            raise ValueError("invalid data")
+        elif dimT == self._dim + 1:
+            var = self._var + normalize_names(self._dim+1,'p')
+            R = PolynomialRing(QQ,var)
+            v = R.gens()
+            f = prod(v[0]+T[i]*v[i+1] for i in range(len(T)))
+            I = R.ideal(f)
+        elif dimT == 1:
+            var = self._var + normalize_names(1,'p')
+            R = PolynomialRing(QQ,var)
+            v = R.gens()
+            f = prod(v[0]+T[i]*v[1] for i in range(len(T)))
+            I = R.ideal(f)
+        else:
+            raise ValueError("notImplemented")
+        return QuotientRing(R,I,v)
+
+    def fixed_points(self):
+        """
+        Returns a list of fixed points under a torus action on 
+        this projective space with weights 0, 1, 2, ..., self._dim.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(2) 
+            sage: P.fixed_points()
+            [{0}, {1}, {2}]
+        """
+        S = Set([i for i in range(self._dim+1)])
+        return S.subsets(1).list()
+
+    def equivariant_variable(self, p):
+        """
+        Returns a list of all Chern classes of equivariant tautological quotient
+        bundle at a fixed point of a torus action on this Grassmannian.
+        Need this to compute integral using Bott's formula for Grassmannians.
+        
+        EXAMPLES::
+        
+            sage: P = ProjectiveSpace(4)
+            sage: F = P.fixed_points()
+            sage: p = F[0]
+            sage: P.equivariant_variable(p)
+            [0]     
+        """
+        return list(p)
+
+    def equivariant_tangent_bundle(self, p):
+        """
+        """
+        h = self.equivariant_variable(p)[0]
+        S = Set([i for i in range(self._dim+1)]) - p
+        w = Set([h-k for k in S])
+        return EquivariantVectorBundle(self,w)
+
+    def bott(self, c):
+        """
+        Returns the degree of a zero-cycle on this projective space
+        using Bott's formula.
+
+        EXAMPLES::
+
+            sage: P = ProjectiveSpace(2)
+            sage: h = P.hyperplane()
+            sage: P.bott(h^2)
+            1
+        """
+        if c.degree() != self.dim():
+            return 0
+        r = 0
+        for p in self.fixed_points():
+            s = self.equivariant_variable(p)
+            T = self.equivariant_tangent_bundle(p)
+            t = T.euler_class()
+            r = r + c(s)/t
+        return r
+
+################################################################################
+########################### Grassmannians ######################################
+################################################################################
+
 class Grassmannian(Variety):
     """
     Makes a Grassmannian as a variety.
@@ -1268,6 +1625,17 @@ class Grassmannian(Variety):
 
     def equivariant_variable(self, p):
         """
+        Returns a list of all Chern classes of equivariant tautological quotient
+        bundle at a fixed point of a torus action on this Grassmannian.
+        Need this to compute integral using Bott's formula for Grassmannians.
+        
+        EXAMPLES::
+        
+            sage: G = Grassmannian(2,4)
+            sage: F = G.fixed_points()
+            sage: p = F[0]
+            sage: G.equivariant_variable(p)
+            [5, 6]
         """
         Q = self.equivariant_quotient_bundle(p)
         return [Q.chern_class(i+1) for i in range(Q.rank())]
@@ -1378,6 +1746,8 @@ class Grassmannian(Variety):
             r = r + c(s)/t
         return r
 
+################################################################################
+################# Equivariant intersection theory ##############################
 ################################################################################
 
 class EquivariantVectorBundle(SageObject):
@@ -1560,345 +1930,7 @@ class EquivariantVectorBundle(SageObject):
         return prod(self.weights())        
 
 ################################################################################
-
-class ProjectiveSpace(Variety):
-    """
-    Makes a projective space as a variety.
-    Its Chow ring is the polynomial ring in one variable 'var' (default 'h'),
-    that is the hyperplane class.
-    """
-    def __init__(self, n, var=None):
-        self._dim = n
-        if var is not None:
-            pass
-        else:
-            var = 'h'
-        self._degs = [1]
-        #R = PolynomialRing(QQ, var)
-        R = PolynomialRing(QQ,var,order=TermOrder('wdegrevlex',self._degs))
-        self._var = R.gens()
-        h = R.gen()
-        self._rels = [h**(n+1)]
-        self._point = h**n
-        pass
-
-    def _repr_(self):
-        """
-        Returns a string representation of this projective space.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3); P
-            A projective space of dimension 3
-            sage: P.chow_ring()
-            Univariate Quotient Polynomial Ring in h over Rational Field
-            with modulus h^4
-            sage: P.monomial_values()
-            {h^3: 1}
-            sage: P.additive_basis()
-            ({0: [1], 1: [h], 2: [h^2], 3: [h^3]},
-            {0: [1], 1: [h], 2: [h^2], 3: [h^3]})
-            sage: P.betti_numbers()
-            [1, 1, 1, 1]
-        """
-        return "A projective space of dimension %s"%(self._dim)
-
-    def is_projective_space(self):
-        """
-        """
-        return True
-
-    def hyperplane(self):
-        """
-        Returns the hyperplane class of this projective space
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3)    
-            sage: h = P.hyperplane(); h
-            h
-            sage: P = ProjectiveSpace(3,'H')
-            sage: h = P.hyperplane(); h
-            H
-        """
-        return self._var[0]
-
-    def O(self, n):
-        """
-        Returns the line bundle on this projective space such that 
-        the first Chern class is n*h.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3)
-            sage: L = P.O(1)
-            sage: L.total_chern_class()
-            h + 1
-        """
-        h = self.hyperplane()
-        return VectorBundle(self,rank=1,chern_class=1+n*h)
-
-    def tangent_bundle(self):
-        """
-        Returns the tangent bundle of this projective space.
-        
-        EXAMPLES:
-        
-            sage: P = ProjectiveSpace(3)
-            sage: T = P.tangent_bundle(); T
-            A vector bundle of rank 3 on A projective space of dimension 3
-            sage: T.total_chern_class()
-            4*h^3 + 6*h^2 + 4*h + 1
-            sage: T.chern_character()
-            2/3*h^3 + 2*h^2 + 4*h + 3
-            sage: T.todd_class()
-            h^3 + 11/6*h^2 + 2*h + 1
-            sage: T.rank() == P.dim()
-            True
-        """
-        n = self._dim
-        R = PolynomialRing(QQ, self._var)
-        h = R.gen()
-        f = (1+h)**(n+1) - h**(n+1)
-        return VectorBundle(self, rank=n, chern_class=f)
-
-    def cotangent_bundle(self):
-        """
-        Returns the cotangent bundle of this projective space.
-        
-        EXAMPLES::
-        
-            sage: P = ProjectiveSpace(3)
-            sage: C = P.cotangent_bundle(); C
-            A vector bundle of rank 3 on A projective space of dimension 3
-            sage: C.total_chern_class()
-            -4*h^3 + 6*h^2 - 4*h + 1
-            sage: C.chern_character()
-            -2/3*h^3 + 2*h^2 - 4*h + 3
-            sage: C.todd_class()
-            -h^3 + 11/6*h^2 - 2*h + 1
-        """
-        return self.tangent_bundle().dual()
-
-    def todd_class(self):
-        """
-        Returns the Todd class of this projective space.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3)
-            sage: P.todd_class()
-            h^3 + 11/6*h^2 + 2*h + 1
-        """
-        return self.tangent_bundle().todd_class()
-
-    def poincare_polynomial(self, variable_name='t'):
-        """
-        Returns the Poincare polynomial of this projective space.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3)
-            sage: P.poincare_polynomial()
-            t^3 + t^2 + t + 1
-        """
-        R = PolynomialRing(ZZ, variable_name)
-        t = R.gen()
-        def f(m):
-            g = 1
-            for i in range(1,m+1):
-                g = g*(1-(t**i))
-            return g
-        return f(self._dim +1)//(f(1)*f(self._dim))
-
-    def betti(self):
-        """
-        Returns the list of Betti numbers of this projective space.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(3)
-            sage: P.betti()
-            [1, 1, 1, 1]
-        """
-        return [self.poincare_polynomial()[i] for i in range(self._dim+1)]
-
-    def GW_invariant(self, d, l):
-        """
-        Returns the Gromov-Witten invariants for this projective space.
-
-        INPUT: 
-            d is the degree
-            l is a list of non-negative integers: for example the number 3
-            denotes the class h^3.
-
-        OUTPUT:
-            The number of degree d curves meeting some general subvarieties in
-            this projective space.
-
-        EXAMPLES::
-
-            Computing the number of lines meeting 4 general lines in P^3.
-
-            sage: P = ProjectiveSpace(3)
-            sage: P.GW_invariant(1,[2,2,2,2])
-            2
-
-            Computing the number of conics meeting 8 general lines in P^3.
-
-            sage: P = ProjectiveSpace(3)
-            sage: P.GW_invariant(2,[2]*8)            
-            92
-        """
-        r = self._dim
-        l.sort()
-        l.reverse()
-        n = len(l)
-        for i in l:
-            if i > r:
-                return 0
-            pass
-        if sum(l) != r*d + r + d + n - 3:
-            return 0
-        elif n == 0 or n == 1:
-            return 0
-        elif d == 0:
-            if n == 3 and sum(l) == r:
-                return 1
-            else:
-                return 0
-        elif n == 2:
-            if d == 1 and l == [r,r]:
-                return 1
-            else:
-                return 0
-        else:
-            if l[-1] == 0:
-                return 0
-            elif l[-1] == 1:
-                l.pop(-1)
-                return d*self.GW_invariant(d,l)
-            elif r == 2:
-                if l == [2]*(3*d-1):
-                    return kontsevich(d)
-                else:
-                    return 0
-            else:
-                l1 = l[-1] - 1
-                l2 = 1
-                ll = [l2] + [l[i] for i in range(n-2)] + [l1+l[n-2]]
-                res = self.GW_invariant(d,ll)
-                S = bipart([l[i] for i in range(n-3)])
-                for s in S:
-                    A = s[0]
-                    nA = len(A)
-                    cA = sum(A)
-                    B = s[1]
-                    for dA in range(1,d+1):
-                        dB = d - dA
-                        e = r*dA + r + dA + nA - cA - l1 - l[n-2]
-                        if e >= 0 and e <= r:
-                            a = self.GW_invariant(dA,[l1,l[n-2]]+A+[e])
-                            b = self.GW_invariant(dB,[l2,l[n-3]]+B+[r-e])
-                            res = res + a*b
-                        f = r*dA + r + dA + nA - cA - l1 - l2
-                        if f >= 0 and f <= r:
-                            x = self.GW_invariant(dA,[l1,l2]+A+[f])
-                            y = self.GW_invariant(dB,[l[n-2],l[n-3]]+B+[r-f])
-                            res = res - x*y
-                return res
-
-    Gromov_Witten_invariant = GW_invariant
-
-    def equivariant_chow_ring(self, dimT, T):
-        """
-        Returns the equivariant Chow ring of this projective space. 
-
-        Input: 
-            dimT : dimension of torus that acts on this projective space.
-            T : list of weights of the action on this projective space.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(4)
-            sage: R = P.equivariant_chow_ring(1,[1,1,1,1,1])
-            sage: I = R.defining_ideal()
-            sage: f = I.gen(0)
-            sage: factor(f)
-            (h + t)^5
-            sage: R = P.equivariant_chow_ring(5,[1,1,1,1,1])
-            sage: I = R.defining_ideal()
-            sage: f = I.gen(0)
-            sage: factor(f)
-            (h + p4) * (h + p3) * (h + p2) * (h + p1) * (h + p0)
-        """
-        if len(T) != self._dim + 1:
-            raise ValueError("invalid data")
-        elif dimT == self._dim + 1:
-            var = self._var + normalize_names(self._dim+1,'p')
-            R = PolynomialRing(QQ,var)
-            v = R.gens()
-            f = prod(v[0]+T[i]*v[i+1] for i in range(len(T)))
-            I = R.ideal(f)
-        elif dimT == 1:
-            var = self._var + normalize_names(1,'p')
-            R = PolynomialRing(QQ,var)
-            v = R.gens()
-            f = prod(v[0]+T[i]*v[1] for i in range(len(T)))
-            I = R.ideal(f)
-        else:
-            raise ValueError("notImplemented")
-        return QuotientRing(R,I,v)
-
-    def fixed_points(self):
-        """
-        Returns a list of fixed points under a torus action on 
-        this projective space with weights 0, 1, 2, ..., self._dim.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(2) 
-            sage: P.fixed_points()
-            [{0}, {1}, {2}]
-        """
-        S = Set([i for i in range(self._dim+1)])
-        return S.subsets(1).list()
-
-    def equivariant_variable(self, p):
-        """
-        """
-        return list(p)
-
-    def equivariant_tangent_bundle(self, p):
-        """
-        """
-        h = self.equivariant_variable(p)[0]
-        S = Set([i for i in range(self._dim+1)]) - p
-        w = Set([h-k for k in S])
-        return EquivariantVectorBundle(self,w)
-
-    def bott(self, c):
-        """
-        Returns the degree of a zero-cycle on this projective space
-        using Bott's formula.
-
-        EXAMPLES::
-
-            sage: P = ProjectiveSpace(2)
-            sage: h = P.hyperplane()
-            sage: P.bott(h^2)
-            1
-        """
-        if c.degree() != self.dim():
-            return 0
-        r = 0
-        for p in self.fixed_points():
-            s = self.equivariant_variable(p)
-            T = self.equivariant_tangent_bundle(p)
-            t = T.euler_class()
-            r = r + c(s)/t
-        return r
-
+####################### Vector bundles and Chern classes #######################
 ################################################################################
 
 class VectorBundle(SageObject):
@@ -2430,6 +2462,10 @@ class VectorBundle(SageObject):
         ch = self.chern_character()
         return VectorBundle(self.variety(),chern_character=n*ch)
 
+################################################################################
+######################## Projective bundles ####################################
+################################################################################
+
 class ProjectiveBundle(Variety):
     """
     Makes a projective bundle as a variety. 
@@ -2592,6 +2628,10 @@ class ProjectiveBundle(Variety):
         v = self._var
         return v[0]**(self._bundle._rank - 1)
 
+################################################################################
+########################### Grassmann bundles ##################################
+################################################################################
+
 class GrassmannBundle(Variety):
     """
     Makes a Grassmann bundle as a variety.
@@ -2689,6 +2729,8 @@ class GrassmannBundle(Variety):
         ch = self._bundle._chern_character - S
         return VectorBundle(variety=self, chern_character = ch)
 
+################################################################################
+######################## Product variety #######################################
 ################################################################################
 
 class ProductVariety(Variety):
@@ -2912,7 +2954,9 @@ class ProductVariety(Variety):
         return r
 
 ################################################################################
-
+################################## Morphisms ###################################
+################################################################################
+ 
 class Morphism(SageObject):
     """
     Makes a morphism from variety1 to variety2.
@@ -3409,9 +3453,9 @@ class Blowup(Variety):
                 M[v[0]**k*Y.monomials(D - k)[s]] = X.integral(f)*(-1)**(D-d+1)
         return M
 
-#######################################################################
-########## EXAMPLES ###################################################
-#######################################################################
+################################################################################
+################# EXAMPLES in Hiep's thesis ####################################
+################################################################################
 
 def lines_via_Schubert_calculus(n): #compute the number of lines on a general hypersurface
     d = 2*n-3 #degree of hypersurface
@@ -4372,6 +4416,659 @@ def localize_at_point(ring, point):
     return local_ring, trans
 
 ################################################################################
+################## Schubert calculus on a Grassmann Algebra ####################
+################################################################################
+
+def sign(I):
+    """
+    It is defined as the sign of an arbitrary permuatation.
+    EXAMPLES::
+    
+        sage: I = [2,4,3]
+        sage: sign(I)    
+        -1
+    """
+    s = 0
+    for i in range(len(I)-1):
+        for j in range(i+1,len(I)):
+            if I[i]-I[j] > 0:
+                s = s+1
+    return (-1)**s
+
+def p(k,m): 
+    """
+    Writes m as a sum of k non-negative integers not bigger than 
+    m, and returns the corresponding multinomial coefficients. 
+    EXAMPLES::
+    
+        sage: p(2,4)
+        [[1, 4, 6, 4, 1], [(4, 0), (3, 1), (2, 2), (1, 3), (0, 4)]]
+    """
+    v = normalize_names(k,'x')
+    R = PolynomialRing(QQ,v)
+    c = R.gens()
+    S = sum(c)**m
+    C = S.coefficients()
+    M = S.monomials()
+    D = [M[i].degrees() for i in range(len(M))]
+    return [C,D]
+    
+def r(k,n):
+    """
+    """
+    if k > n:
+        return 0
+    else:
+        return k
+
+def reduce_zero(I):
+    """
+    EXAMPLES::
+    
+        sage: I = [1,3,0]; reduce_zero(I) 
+        []
+    """
+    if prod(I[i] for i in range(len(I))) == 0:
+        return []
+    else:
+        return I
+        
+def reduce_equal(I): 
+    """
+    EXAMPLES::
+        
+        sage: I = [1,3,3]; reduce_equal(I)
+        sage: []
+    """
+    P = 1
+    for i in range(len(I)):
+        for j in range(i+1,len(I)):
+            P = P*(I[j]-I[i])
+    if P == 0:
+        return []
+    else:
+        return I
+                
+def reduce(I):
+    """
+    EXAMPLES::
+    
+        sage: I = [(2,[1,2]),(1,[2,1]),(3,[1,0]),(4,[2,2])]
+        sage: reduce(I)
+        [(1, [1, 2])]
+    """
+    A = list()
+    for i in range(len(I)):
+        if len(reduce_zero(reduce_equal(I[i][1])))!= 0:
+            A.append(I[i])
+    B = list()
+    for i in range(len(A)):
+        a = sign(A[i][1])
+        A[i][1].sort()
+        B.append((A[i][0]*a, A[i][1]))
+    result = list()
+    allval=list()
+    for t in B:
+        if t[1] not in allval:
+            allval.append(t[1])
+    for val in allval:
+        count = 0
+        for t in B:
+            if t[1] == val:
+                count = count + t[0]
+        result.append((count,val))
+    return result
+    
+def Pieri_condition(I,J):
+    """
+    The condition in Pieri's formula.
+    EXAMPLES::
+    
+        sage:
+    """
+    result = list()
+    n = 0
+    while n <= len(I)-2:
+        if J[n] >= I[n+1]-I[n]:
+            return []
+        else:
+            n = n + 1
+    result.append(J)
+    return result
+
+def D(h,m,I,n):
+    """
+    EXAMPLES::
+    
+        sage: D(2,1,[2,3,5],8) # Pieri's formula
+        [(1, [2, 4, 6]), (1, [2, 3, 7])]
+        sage: D(2,1,[2,3,5],6)
+        [(1, [2, 4, 6])]
+        sage: D(1,4,[1,2],4) # Newton binomial formula
+        [(2, [3, 4])]
+        sage: D(1,2,[1,2,3],5)
+        [(1, [1, 3, 4]), (1, [1, 2, 5])]
+        sage: D(1,5,[1,3,6],6)
+        [(5, [4, 5, 6])]
+        sage: D(2,2,[1,2],4) # Corollary 2.3.10
+        [(1, [3, 4])]
+        sage: D(2,4,[1,2,3,4],6) 
+        [(1, [3, 4, 5, 6])]
+    """
+    if len(reduce_zero(reduce_equal(I))) == 0:
+        return [(1,[0])]
+    elif m == 0 or h == 0:
+        return [(1,I)]
+    elif m == 1: 
+        if len(I) == 1:
+            return [(1,[r(I[0]+h,n)])]
+        else: # Pieri's formula
+            A = p(len(I),h)[1]
+            result = list()
+            B = []
+            for i in range(len(A)):
+                if len(Pieri_condition(I,A[i])) > 0:
+                    L=[r(I[k]+A[i][k],n) for k in range(len(I))]
+                    result.append((1,L))
+            return reduce(result)
+    elif h == 1:
+        if len(I) == 1:
+            return D(m,1,I,n)
+        elif len(I) == 2: # Newton binomial formula
+            result = list()
+            for i in range(m + 1):
+                L = [r(i+I[0],n),r(m-i+I[1],n)]
+                result.append((binomial(m,i),L))
+            return reduce(result)
+        else: # Newton binomial formula's generalization
+            result = list()
+            P = p(len(I),m)
+            for i in range(len(P[0])):
+                L=[r(P[1][i][j]+I[j],n) for j in range(len(I))]
+                result.append((P[0][i],L))
+            return reduce(result)
+    elif len(I) == 1:
+        return [(1, [r(I[0]+m*h,n)])]
+    elif len(I) == 2: # Corollary 2.3.10(1) 
+        result = list()
+        for i in range(m+1):
+            A =list()
+            B = D(h-1,i,[r(I[0]+i,n), r(I[1]+h*(m-i),n)],n)
+            for j in range(len(B)):
+                A.append((binomial(m,i)*B[j][0], B[j][1]))
+            for k in range(len(A)):
+                result.append(A[k])
+        return reduce(result)
+    else: # Corollary 2.3.10(2)
+        result = list()
+        for i in range(m+1):
+            a = I[0]
+            J = [I[j] for j in range(1,len(I))]
+            K = []
+            for d in range(len(D(h,m-i,J,n))):
+                C = D(h,m-i,J,n)[d][0]
+                V = [r(a+i,n)]+D(h,m-i,J,n)[d][1]
+                K.append((C,V))
+            re = list()
+            for k in range(len(K)):
+                L = D(h-1,i,K[k][1],n)
+                for s in range(len(L)):
+                    re.append((K[k][0]*L[s][0],L[s][1]))
+            for t in range(len(re)):
+                result.append((binomial(m,i)*re[t][0],re[t][1]))
+        return reduce(result)
+        
+       
+
+def degree_grassmann(k,n):
+    """
+    EXAMPLES::
+    
+        sage: degree_grassmann(2,4)
+        2
+        sage: degree_grassmann(3,10)
+        1385670
+    """
+    I = [i for i in range(1,k+1)]
+    return D(1,k*(n-k),I,n)[0][0]
+    
+def flexes_rationalCurves(n): 
+    """
+    Computes the number of space rational curves 
+    having "hyperstalls" at prescribed 2n distinct points.
+    EXAMPLES::
+    
+        sage: D(2,4,[1,2,3,4],6) 
+        [(1, [3, 4, 5, 6])]
+        sage: D(2,6,[1,2,3,4],7)
+        [(5, [4, 5, 6, 7])]
+        sage: D(2,8,[1,2,3,4],8)
+        [(126, [5, 6, 7, 8])]
+        sage: D(2,10,[1,2,3,4],9)
+        [(3396, [6, 7, 8, 9])]
+        sage: D(2,12,[1,2,3,4],10)
+        [(114675, [7, 8, 9, 10])]
+        sage: D(2,14,[1,2,3,4],11)
+        [(4430712, [8, 9, 10, 11])]
+        sage: D(2,16,[1,2,3,4],12)
+        [(190720530, [9, 10, 11, 12])]
+        sage: D(2,18,[1,2,3,4],13)
+        [(8942188632, [10, 11, 12, 13])]
+        sage: D(2,20,[1,2,3,4],14)
+        [(449551230102, [11, 12, 13, 14])]
+        sage: D(2,22,[1,2,3,4],15)
+        [(23948593282950, [12, 13, 14, 15])]
+        sage: D(2,24,[1,2,3,4],16)
+        [(1339757254689348, [13, 14, 15, 16])]
+        sage: D(2,26,[1,2,3,4],17)
+        [(78153481093195800, [14, 15, 16, 17])]
+        sage: D(2,28,[1,2,3,4],18)
+        [(4727142898098368085, [15, 16, 17, 18])]
+    """
+    return D(2,2*n,[1,2,3,4],n+4)[0][0]
+    
+    
+def intersection_number(a,b,n):
+    """
+    Computes the top intersection numbers in G(2,n+2).
+    EXAMPLES::
+    
+        sage: intersection_number(0,2,2)  
+        1
+        sage: intersection_number(14,1,8)
+        1001
+        sage: intersection_number(8,4,8) 
+        352
+    """
+    K = D(2,b,[1,2],n+3)
+    result = list()
+    for i in range(len(K)):
+        L = D(1,a,K[i][1],n+3)
+        for j in range(len(L)):
+            result.append((L[j][0]*K[i][0], L[j][1]))
+    for k in range(len(reduce(result))):
+        if reduce(result)[k][1] == [n+1,n+2]:
+            return reduce(result)[k][0]
+
+################################################################################
+############### Chern and Hilbert polynomials ##################################
+################################################################################
+
+R = PolynomialRing(ZZ,'t')
+t = R.gen()
+
+def poly_base(i):
+    """
+    Returns the Hilbert polynomial "P_i = binomial(t+i,i)" 
+    of S_j=k[x_0, ..., x_d]/(x_0, ..., x_{d-1-j})
+    EXAMPLES::
+        
+        sage: poly_base(2)
+        1/2*t^2 + 3/2*t + 1
+        sage: poly_base(3)
+        1/6*t^3 + t^2 + 11/6*t + 1
+    """
+    return prod((t+k) for k in range (1,i+1))/factorial(i)
+
+def chern_base(j,d):
+    """
+    Returns the Chern polynomial of the coherent sheaf 
+    associated to S_j in P^d.
+    EXAMPLES::
+        
+        sage: chern_base(0,3)
+        2*t^3 + 1
+        sage: chern_base(1,3)
+        -2*t^3 - t^2 + 1
+    """
+    g = h = 1
+    for i in range(d+1):
+        if i % 2 == 0:
+            g = g*taylor((1-i*t)**binomial(d-j,i),t,0,d)
+        else:
+            h = h*taylor((1-i*t)**binomial(d-j,i),t,0,d)
+    return taylor(g/h,t,0,d)
+    
+def coeffs(f):
+    """
+    Returns the cofficients of the representation of f 
+    via the polynomials P_i.
+    EXAMPLS::
+            
+        sage: R.<t> = QQ[]
+        sage: f = 2 + 4*t
+        sage: coeffs(f)
+        [-2, 4] 
+        """
+    if f == 0:
+        return []
+    dim = f.degree()
+    deg = f.leading_coefficient()*factorial(dim)
+    a = [0]*(dim+1)
+    a[dim] = deg      
+    f = f-deg*poly_base(dim)
+    while f != 0:
+        dim = f.degree()
+        deg = f.leading_coefficient()*factorial(dim)
+        a[dim] = deg
+        f = f-deg*poly_base(dim)
+    return a
+        
+def chern(f,d):
+    """
+    An Grothendieck element on P^d is characterized by 
+    its Hilbert polynomial. Returns its Chern polynomial 
+	by using the Chern polynomial of S_j.
+    EXAMPLES::
+            
+        sage: R.<t> = QQ[]
+        sage: f = 1 + 3*t
+        sage: chern(f,3)
+        -10*t^3 - 3*t^2 + 1
+    """
+    a = coeffs(f)
+    C = prod(chern_base(i,d)**a[i] for i in range(len(a)))
+    return taylor(C,t,0,d)
+        
+def coeffs1(f,d):
+    """
+    Returns the cofficients of the representation 
+    of f via the Hilbert polynomials of 
+	twisted structure sheaves o(-i), i = 0, ..., d.
+    EXAMPLES::
+            
+        sage: R.<t> = QQ[]
+        sage: f = 2 + 4*t
+        sage: coeffs1(f,3)
+        [2, -2, -2, 2]
+    """
+    a = coeffs(f)
+    for i in range(d-len(a)+1):
+        a.append(0)     
+    b = []
+    for j in range(d+1):
+        s = sum((-1)**j*a[k]*binomial(d-k,j) for k in range(d-j+1))
+        b.append(s)       
+    return b
+        
+def chern1(f, d):
+    """
+    An Grothendieck element on P^d characterized 
+    by its Hilbert polynomial. Returns its 
+    Chern polynomial by using the Chern polynomial 
+    of twisted structure sheaves o(-i), i = 0, ..., d.       
+    EXAMPLES::
+        
+        sage: R.<t> = QQ[]
+        sage: f = 2 + 4*t
+        sage: chern1(f,3)
+        -12*t^3 - 4*t^2 + 1
+        sage: f = 1 + 3*t
+        sage: chern1(f,3)
+        -10*t^3 - 3*t^2 + 1
+    """
+    b = coeffs1(f,d)
+    C = prod(taylor((1-i*t)**b[i],t,0,d) for i in range(d+1))       
+    return taylor(C,t,0,d)
+        
+def rank(f,d):
+    """
+    Returns the rank of the coherent sheaf
+    characterized by its Hilbert polynomial.
+    EXAMPLES::
+        
+        sage: f = 1/3*t^3 + 2*t^2 + 23/3*t + 4
+        sage: rank(f,3)                       
+        2
+    """
+    return sum(coeffs1(f,d))
+
+
+def ch(C,r,d):
+    """
+    Given a Grothendieck element of rank r on P^d 
+    characterized by its Chern polynomial C, 
+    returns its Chern character.
+    EXAMPLES::
+        
+        sage: R.<t> = QQ[]
+        sage: f = 1 - t + 4*t^2 
+        sage: ch(f,2,4)   
+        17/24*t^4 + 11/6*t^3 - 7/2*t^2 - t + 2
+    """
+    m = C.degree()
+    a = C.coeffs()
+    for i in range(d-m):
+        a.append(0)
+    p = [r, a[1]]
+    for n in range(2,d+1):
+        s1 = sum((-1)**(i+1)*a[i]*p[n-i] for i in range(1,n))
+        s2 = (-1)**(n+1)*n*a[n] + s1 
+        p.append(s2)
+    return sum(p[i]/factorial(i)*t**i for i in range(d+1))  
+        
+def hilbert(C,r,d):
+    """
+	Given a Grothendieck element of rank r on P^d 
+	characterized by its Chern polynomial, 
+	returns its Hilbert polynomial.
+    EXAMPLES::
+
+        sage: R.<t> = QQ[]
+        sage: C = 1 - t + 4*t^2
+		sage: hilbert(C,2,4)
+		1/12*t^4 + 2/3*t^3 - 1/12*t^2 - 17/3*t - 5
+    """
+    s = sum((-1)**n/factorial(n+1)*t**n for n in range(d+1))**(-1)
+    h = taylor(s,t,0,d)
+    f = taylor(h**(d+1),t,0,d)
+    a = [f.coeffs()[i][0] for i in range(len(f.coeffs()))] 
+    b = ch(C,r,d).coeffs()
+    p = []
+    for k in range(d+1):
+        p.append(sum(a[i]*b[k-i] for i in range(k+1))/factorial(d-k))
+    return sum(p[i]*t**(d-i) for i in range(d+1))
+    
+################################################################################
+#################################### CSM classes ###############################
+################################################################################
+
+S = PolynomialRing(QQ,'h')
+h = S.gen()
+
+def next(F,n):
+    """
+    Need for the next function.
+    EXAMPLES::
+    
+        sage:
+    """
+    res = list()
+    t = len(F[0])+1
+    A = list()
+    for i in range(t,n+1):
+        for j in range(len(F)):
+            if len(F[j]) == 0:
+                A = [i]
+                res.append(F[j]+A)
+            else:
+                if F[j][len(F[j])-1] < i:
+                    A = [i]
+                    res.append(F[j]+A)
+                else:
+                    pass
+    return res
+    
+def sub(d,n):
+    """
+    Lists all d numbers of the first n natural numbers with order.
+    Need for the computation of CSM classes.
+    EXAMPLES::
+    
+        sage: sub(2,3)
+	    [[1, 2], [1, 3], [2, 3]]
+    """ 
+    res = [[]]
+    for i in range(d):
+        res = next(res,n)
+    return res
+    
+def shadow(I):
+    """
+    Returns the shadow of the graph Gamma_I.
+    EXAMPLES::
+    
+        sage: R.<x,y,z,w> = QQ[]
+        sage: I = R.ideal(x*y,x*z,y*z)
+        sage: shadow(I)
+        [1, 2, 1, 0]
+    """
+    R = I.ring()
+    n = R.ngens()-1
+    v = R.gens()
+    N = I.ngens()
+    if I == R.ideal(0):
+        return [0]*(n+1)
+    R1 = PolynomialRing(QQ,normalize_names(N,'t'))
+    R2 = PolynomialRing(QQ,normalize_names(N,'t') + v)
+    li = [R2.gens()[i] for i in range(N)]
+    R3 = PolynomialRing(QQ,normalize_names(1,'u')+normalize_names(N,'t')+v)
+    J = R3.ideal()
+    for i in range(N):
+        J = J + R3.ideal(R1.gens()[i]-R3.gens()[0]*I.gens()[i])
+    L = [1]   
+    H = [0]*(n+1)
+    l = [0]*(n+1)
+    LL = [0]*(n+1)
+    LLL = [0]*(n+1)
+    H[0] = R2.ideal(J.elimination_ideal([R3.gens()[0]]))
+    for i in range(1,n+1):
+        while True:
+            f = R1.random_element(1, N)
+            l[i] = f - f.constant_coefficient()
+            LL[i] = R2.ideal(l[i])
+            if H[i-1].quotient(LL[i]).intersection(H[i-1])==H[i-1].quotient(LL[i]):
+		        break 
+        maxi = R2.ideal(R1.ideal(R1.gens()))
+        singular.LIB('elim.lib')
+        H[i] = R2.ideal(singular.sat(H[i-1] + LL[i],maxi)[1])
+        LLL[i] = H[i].elimination_ideal(li)
+        L.append(singular.mult(LLL[i]))
+    return L
+        
+def segre(I):
+    """
+    Returns the segre class of projective scheme defined by I.
+    EXAMPLES::
+    
+        sage: R.<x,y,z,w> = QQ[]
+	    sage: I = R.ideal(x*y,x*z,y*z)
+	    sage: segre(I)
+	    -10*h^3 + 3*h^2
+    """
+    R = I.ring()
+    n = R.ngens()-1
+    m = I.gens()[0].degree()
+    L = shadow(I)
+    f = g = 0
+    for i in range(n+1):
+        f = f + L[i]*h**i*(1+m*h)**(n-i)
+        g = g + binomial(n+i,i)*(-m*h)**i
+    return (1 - f*g).sage().truncate(n+1)
+    
+def fulton(I):
+    """
+    Returns the Chern-Fulton class of projective scheme defined by I.
+    EXAMPLES::
+    
+        sage: R.<x,y,z,w> = QQ[]
+	    sage: I = R.ideal(x*y,x*z,y*z)
+	    sage: fulton(I)
+	    2*h^3 + 3*h^2
+    """
+    R = I.ring()
+    n = R.ngens()-1
+    return ((1+h)**(n+1)*segre(I)).truncate(n+1)
+    
+def csm(I):
+    """
+    Returns the Chern-Schwarzt-MacPherson class of 
+    a hypersurface defined by I.
+    EXAMPLES::
+    
+        sage: R.<x,y,z,w,t> = QQ[]    
+	    sage: I = R.ideal(x^5+y^5+z^5+w^5+t^5)
+	    sage: csm(I)
+	    -200*h^4 + 50*h^3 + 5*h
+
+    """
+    R = I.ring()
+    n = R.ngens()-1     
+    J = I.gens()[0].jacobian_ideal()
+    L = shadow(J)
+    f = (1 + h)**(n+1)
+    g = sum(L[i]*(-h)**i*(1+h)**(n-i) for i in range(n+1))
+    return (f-g).sage().truncate(n+1)
+    
+def CSM(I):
+    """
+    Returns the Chern-Schwarzt-MacPherson class of 
+    projective scheme defined by I.
+    EXAMPLES::
+    
+        sage: R.<x,y,z,w> = QQ[]
+	    sage: I = R.ideal(x*y,x*z,y*z)
+	    sage: CSM(I)   
+	    4*h^3 + 3*h^2
+    """
+    R = I.ring()
+    n = R.ngens()-1
+    r = I.ngens()
+    if r <= 1:
+        return csm(I)
+    else:
+        res = 0
+        for d in range(1,r+1):
+            L = sub(d,r)
+            C = 0
+            for i in range(len(L)):
+                f = 1
+                for j in range(len(L[i])):
+                    f = f*I.gens()[L[i][j]-1]
+                C = C + csm(R.ideal(f))
+            res = res + (-1)**(d+1)*C
+        return res
+        
+def CSMC(I):
+    """
+    Return the Chern-Schwarzt-MacPherson class of the 
+    complement of projective scheme defined by I.
+    EXAMPLES::
+    
+	    sage: R.<x,y,z,w> = QQ[]
+	    sage: I = R.ideal(x*y,x*z,y*z)
+	    sage: CSMC(I)
+	    3*h^2 + 4*h + 1
+    """
+    R = I.ring()
+    n = R.ngens()-1
+    return (1+h)**(n+1)-h**(n+1) - CSM(I)
+    
+def milnor(I):
+    """
+    Returns the milnor class of projective scheme defined by I.
+    EXAMPLES::
+    
+	    sage: R.<x,y,z,w> = QQ[]      
+	    sage: I = R.ideal(x*y,x*z,y*z)
+	    sage: milnor(I)               
+	    2*h^3
+    """
+    return CSM(I) - fulton(I)
+
+################################################################################
+###################### Toric intersection theory ###############################
+################################################################################
 
 class ToricVariety(Variety):
     """
@@ -4617,6 +5314,8 @@ def HirzebruchSurface(r):
     return ToricVariety(F)
 
 ################################################################################
+###################### Gromov-Witten invariants ################################
+################################################################################
 
 class ModuliSpace(SageObject):
     """
@@ -4855,22 +5554,13 @@ class ModuliSpace(SageObject):
 
         EXAMPLES::
 
-            sage: P = ProjectiveSpace(1)                                                   
+            sage: P = ProjectiveSpace(4)
             sage: M = ModuliSpace(P,2)
-            sage: F = M.fixed_points()
-            sage: K = F.keys()
+            sage: F = M.fixed_points(); K = F.keys()
             sage: p = K[0]; p
-            A graph on 2 vertices
+            A graph of 3 vertices and 2 edges
             sage: M.contribution_bundle(p)
-            (1/4) * (t0 + t1)^2
-            sage: p = K[1]; p
-            A graph on 3 vertices
-            sage: M.contribution_bundle(p)
-            t1^2
-            sage: p = K[2]; p
-            A graph on 3 vertices
-            sage: M.contribution_bundle(p)
-            t0^2
+            135014500030592000000000000000000000000000
         """
         t = self._v
         if d == None:
@@ -4903,18 +5593,13 @@ class ModuliSpace(SageObject):
 
         EXAMPLES::
 
-            sage: P = ProjectiveSpace(1)                                                   
+            sage: P = ProjectiveSpace(4)
             sage: M = ModuliSpace(P,2)
-            sage: F = M.fixed_points()
-            sage: K = F.keys()
+            sage: F = M.fixed_points(); K = F.keys()
             sage: p = K[0]; p
-            A graph on 2 vertices
+            A graph of 3 vertices and 2 edges
             sage: M.equivariant_normal_bundle(p)
-            (-1) * (t0 - t1)^2
-            sage: p = K[1]; p
-            A graph on 3 vertices
-            sage: M.equivariant_normal_bundle(p)
-            (2) * (t0 - t1)^2
+            513482889109633509700161000000000000
         """
         t = self._v
         N = 1
@@ -5240,6 +5925,10 @@ def multiple_cover(d):
         t = M.equivariant_normal_bundle(p)
         r = r + s/(F[p]*t)
     return r
+
+################################################################################
+####################### Examples for the furture works #########################
+################################################################################
 
 def Gromov_Witten_invariants_for_lines(k,a,b):
     G = Grassmannian(2,k+2)
