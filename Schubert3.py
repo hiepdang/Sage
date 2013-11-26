@@ -3218,7 +3218,7 @@ class Morphism(SageObject):
             sage: h = P.hyperplane()
             sage: Q = ProjectiveSpace(2,'H')
             sage: H = Q.hyperplane()
-            sage: L = Q.O(4*H)
+            sage: L = Q.O(4)
             sage: B = BundleSection(L)
             sage: f = Morphism(B,P,[3*H])
             sage: f.double_point()
@@ -3230,13 +3230,9 @@ class Morphism(SageObject):
         B = part(N._chern_class,n)
         return A - B
 
-        def triple_point(self):
+    def triple_point(self):
         """
-        Returns the triple-point class of this morphism.
-
-        EXAMPLES::
-
-            sage:        
+        Returns the triple-point class of this morphism
         """
         n = -self.dim()
         N = self.normal_bundle()
@@ -3246,11 +3242,7 @@ class Morphism(SageObject):
 
     def quadruple_point(self):
         """
-        Return the quadruple-point class of morphisms have codimension 1.
-
-        EXAMPLES::
-
-            sage:
+        Return the quadruple-point class of morphisms have codimension 1
         """
         N = self.normal_bundle()
         A = self.pullback(self.pushforward(self.triple_point())) - 3*part(N._chern_class,1)*self.triple_point()
