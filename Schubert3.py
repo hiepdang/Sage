@@ -1608,19 +1608,15 @@ class Grassmannian(Variety):
     def fixed_points(self):
         """
         Returns a list of fixed points under action of a torus of dimension 1 on
-        this Grassmannian G(k,n) with weights 0, 1, 2, ..., n-1.
+        this Grassmannian G(k,n) with weights 1, 2, ..., n.
 
         EXAMPLES::
 
             sage: G = Grassmannian(2,4)
             sage: G.fixed_points()
-            [{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}]
-            sage: G = Grassmannian(2,5)
-            sage: G.fixed_points()     
-            [{0, 1}, {0, 2}, {0, 3}, {0, 4}, {1, 2}, {1, 3},
-            {1, 4}, {2, 3}, {2, 4}, {3, 4}]
+            [{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}]
         """
-        S = Set([i for i in range(self._n)])
+        S = Set([i for i in range(1,self._n+1)])
         return S.subsets(self._k).list()
 
     def equivariant_variable(self, p):
@@ -1635,7 +1631,7 @@ class Grassmannian(Variety):
             sage: F = G.fixed_points()
             sage: p = F[0]
             sage: G.equivariant_variable(p)
-            [5, 6]
+            [7, 12]
         """
         Q = self.equivariant_quotient_bundle(p)
         return [Q.chern_class(i+1) for i in range(Q.rank())]
@@ -1651,17 +1647,17 @@ class Grassmannian(Variety):
             sage: G = Grassmannian(2,4)
             sage: F = G.fixed_points()
             sage: p = F[0]; p
-            {0, 1}
+            {1, 2}
             sage: Q = G.equivariant_quotient_bundle(p); Q
             An equivariant vector bundle of rank 2 on A Grassmannian
             of all 2-planes in 4-space
             sage: Q.rank()
             2
             sage: Q.weights()
-            {2, 3}
+            {3, 4}
         """
-        w = Set([i for i in range(self._n)]) - p
-        return EquivariantVectorBundle(self,w)
+        w = Set([i for i in range(1,self._n+1)]) - p
+        return EquivariantVectorBundle(w)
 
     def equivariant_subbundle(self, p):
         """
@@ -1674,16 +1670,16 @@ class Grassmannian(Variety):
             sage: G = Grassmannian(2,4)
             sage: F = G.fixed_points()
             sage: p = F[0]; p
-            {0, 1}
+            {1, 2}
             sage: S = G.equivariant_subbundle(p); S
             An equivariant vector bundle of rank 2 on A Grassmannian
             of all 2-planes in 4-space
             sage: S.rank()
             2
             sage: S.weights()
-            {0, 1}
+            [1, 2]
         """
-        return EquivariantVectorBundle(self,p)
+        return EquivariantVectorBundle(p)
 
     def equivariant_tangent_bundle(self, p):
         """
@@ -1695,7 +1691,7 @@ class Grassmannian(Variety):
             sage: G = Grassmannian(2,4)
             sage: F = G.fixed_points()
             sage: p = F[0]; p
-            {0, 1}
+            {1, 2}
             sage: T = G.equivariant_tangent_bundle(p); T
             An equivariant vector bundle of rank 4 on A Grassmannian
             of all 2-planes in 4-space
@@ -1752,11 +1748,12 @@ class Grassmannian(Variety):
 
 class EquivariantVectorBundle(SageObject):
     """
-    Makes an equivariant vector bundle on a variety with the torus action.
-    It is given by the weights of the torus action on ordinary vector bundle.
+    Makes an equivariant vector bundle on a point with the torus action.
+    It is given by the weights of the corresponding representation of this torus.
     """
-    def __init__(self, variety, weights):
-        self._variety = variety
+    def __init__(self, weights):
+    #def __init__(self, variety, weights):
+        #self._variety = variety
         self._weights = list(weights)
         pass
 
@@ -1770,12 +1767,11 @@ class EquivariantVectorBundle(SageObject):
             sage: F = G.fixed_points()
             sage: p = F[0]
             sage: Q = G.equivariant_quotient_bundle(p); Q
-            An equivariant vector bundle of rank 2 on A Grassmannian
-            of all 2-planes in 4-space
+            An equivariant vector bundle of rank 2 over a point
         """
         w = self._weights
-        V = self._variety
-        return "An equivariant vector bundle of rank %s on %s" %(len(w),V)
+        #V = self._variety
+        return "An equivariant vector bundle of rank %s over a point" %(len(w))
 
     def weights(self):
         """
@@ -1787,15 +1783,15 @@ class EquivariantVectorBundle(SageObject):
             sage: G = Grassmannian(2,4)
             sage: F = G.fixed_points()
             sage: p0 = F[0]; p0
-            {0, 1}
+            {1, 2}
             sage: Q = G.equivariant_quotient_bundle(p0)
             sage: Q.weights()
-            {2, 3}
+            [3, 4]
             sage: p1 = F[1]; p1
-            {0, 2}
+            [1, 3]
             sage: Q = G.equivariant_quotient_bundle(p1)
             sage: Q.weights()
-            {1, 3}
+            [2, 4]
         """
         return self._weights
 
@@ -1827,13 +1823,13 @@ class EquivariantVectorBundle(SageObject):
             sage: S = G.equivariant_subbundle(p)       
             sage: B = S.dual()                         
             sage: S.weights()
-            {0, 1}
+            [1, 2]
             sage: B.weights()
-            [0, -1]
+            [-1, -2]
         """
-        V = self._variety
+        #V = self._variety
         w = [-s for s in self.weights()]
-        return EquivariantVectorBundle(V, w)
+        return EquivariantVectorBundle(w)
 
     def __and__(self, arg):
         """
@@ -1851,9 +1847,9 @@ class EquivariantVectorBundle(SageObject):
             sage: B.weights() == T.weights()
             True
         """
-        V = self._variety
+        #V = self._variety
         w = [a + b for a in self.weights() for b in arg.weights()]
-        return EquivariantVectorBundle(V,w)
+        return EquivariantVectorBundle(w)
 
     def symmetric_power(self, d):
         """
@@ -1867,14 +1863,14 @@ class EquivariantVectorBundle(SageObject):
             sage: Q = G.equivariant_quotient_bundle(p)
             sage: B = Q.symmetric_power(3)
             sage: B.weights()
-            [6, 7, 8, 9]
+            [9, 10, 11, 12]
         """
-        V = self._variety
+        #V = self._variety
         q = self.weights()
         r = self.rank()
         v = IntegerVectors(d,r)
         w = [sum(e[i]*q[i] for i in range(r)) for e in v]
-        return EquivariantVectorBundle(V,w)
+        return EquivariantVectorBundle(w)
 
     def chern_class(self, k):
         """
@@ -1921,9 +1917,9 @@ class EquivariantVectorBundle(SageObject):
             sage: Q = G.equivariant_quotient_bundle(p)
             sage: B = Q.symmetric_power(3)
             sage: B.weights()
-            [6, 7, 8, 9]
+            [9, 10, 11, 12]
             sage: B.euler_class()         
-            3024
+            11880
             sage: B.euler_class() == prod(B.weights())
             True
         """
@@ -5975,4 +5971,38 @@ def Gromov_Witten_invariants_lines_Bott_formula(k,a,b):
         T = G.equivariant_tangent_bundle(p)
         t = T.euler_class()
         result = result + s/t
+    return result
+
+#here is the code of Corollary 5.3.8:
+
+def number_linear_subspaces(k,d,n):
+    phi = (k+1)*(n-k)-binomial(d+k,d)
+    if phi <> 0:
+        raise ValueError('Invalid data')
+    S = Set([i for i in range(1,n+2)])
+    F = S.subsets(k+1).list()
+    V = IntegerVectors(d,k+1)
+    result = 0
+    for p in F:
+        q = S - p
+        s = prod(sum(v[i]*p[i] for i in range(k+1)) for v in V)
+        t = prod(i - j for i in p for j in q)
+        result = result + s/t
+    return result
+
+#here is the code of Theorem 5.3.7:
+
+def degree_fano_scheme(k,d,n):
+    phi = (k+1)*(n-k)-binomial(d+k,d)
+    if phi < 0:
+        raise ValueError('Fano scheme is empty')
+    S = Set([i for i in range(1,n+2)])
+    F = S.subsets(k+1).list()
+    V = IntegerVectors(d,k+1)
+    result = 0
+    for p in F:
+        q = S - p
+        s = prod(sum(v[i]*p[i] for i in range(k+1)) for v in V)
+        t = prod(i - j for i in p for j in q)
+        result = result + (s*(-sum(q))**phi)/t
     return result
