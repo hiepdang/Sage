@@ -711,12 +711,14 @@ class Variety(SageObject):
             sage: B.integral1(D)
             104
         """
-        #if self.codim(c) != self._dim:
-            #return 0
+        if self.codim(c) != self._dim:
+            return 0
         v = list(self._var)
         d = self.monomial_values()
         if len(v) == 1:
             return c[self._dim]*d[v[0]**self._dim]
+        elif len(c.parent().gens()) == 1:
+            return c[c.degree()]*d[c.monic()]
         else:
             mons = c.monomials()
             coefs = c.coefficients()
@@ -738,8 +740,10 @@ class Variety(SageObject):
             sage: G.integral(c)
             27
         """
-        #if self.codim(c) != self._dim:
-            #return 0
+        if type(self) == Blowup:
+            return self.integral1(c)
+        if self.codim(c) != self._dim:
+            return 0
         R = self.chow_ring()
         c = R(c)
         if R.ngens() == 1:
