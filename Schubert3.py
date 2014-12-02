@@ -56,7 +56,7 @@ from sage.structure.sage_object import SageObject
 import sage.libs.singular
 from sage.rings.arith import factorial
 from sage.structure.parent_gens import normalize_names
-from sage.combinat.sf.sfa import SFAElementary
+#from sage.combinat.sf.sfa import SFAElementary
 from sage.libs.singular.function import SingularLibraryFunction
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.interfaces.singular import singular
