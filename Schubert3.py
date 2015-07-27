@@ -2298,7 +2298,7 @@ class VectorBundle(SageObject):
         #R = self._variety.chow_ring()
         f = self._chern_class
         g = segre(f,d)
-        return part(g,i)
+        return (-1)**i*part(g,i)
 
     def segre_polynomial(self):
         """
@@ -5007,7 +5007,7 @@ def shadow(I):
         L.append(singular.mult(LLL[i]))
     return L
         
-def segre(I):
+def segre2(I):
     """
     Returns the segre class of projective scheme defined by I.
     EXAMPLES::
@@ -5039,7 +5039,7 @@ def fulton(I):
     """
     R = I.ring()
     n = R.ngens()-1
-    return ((1+h)**(n+1)*segre(I)).truncate(n+1)
+    return ((1+h)**(n+1)*segre2(I)).truncate(n+1)
     
 def csm(I):
     """
@@ -6047,3 +6047,15 @@ def degree_fano_scheme(k,d,n):
         t = prod(i - j for i in p for j in q)
         result = result + (s*(-sum(q))**phi)/t
     return result
+
+#compute the algebraic degree of semidefinite programming
+
+def algDegSDP(m,n,r):
+    G = Grassmannian(r,n)
+    S = G.tautological_subbundle().dual()
+    Q = G.tautological_quotient_bundle()
+    A = Q.symmetric_power(2)
+    B = S.symmetric_power(2)
+    c = A.segre_class(m-binomial(n-r+1,2))
+    d = B.segre_class(binomial(n+1,2)-m-binomial(r+1,2))
+    return G.integral(c*d)
