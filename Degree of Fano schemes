@@ -1,0 +1,13 @@
+def degFanoScheme(k,l,n):
+  phi = (k+1)*(n-k)-sum(binomial(d+k,d) for d in l)
+  if phi < 0:
+    raise ValueError('Fano scheme is empty')
+  S = Set([i for i in range(n+1)])
+  F = S.subsets(k+1).list()
+  result = 0
+  for p in F:
+    q = S - p
+    s = prod(prod(sum(v[i]*p[i] for i in range(k+1)) for v in IntegerVectors(d,k+1)) for d in l)
+    t = prod(i - j for i in p for j in q)
+    result = result + (s*(-sum(q))**phi)/t
+  return result
