@@ -5185,12 +5185,3 @@ def multiple_cover(d):
         t = M.equivariant_normal_bundle(p[0])
         r = r + s/(p[1]*t)
     return r
-"""
-def EulerCharacteristicTangoBundleProjectiveSpace(n):
-    P = ProjectiveSpace(n)
-    T = P.tangent_bundle()
-    L = P.O(0)
-    F = L^binomial(n+1,2) - (T & P.O(-2))
-    E = F - L^(binomial(n,2)-n+1)
-    return E.chi()
-"""
