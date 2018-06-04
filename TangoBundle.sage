@@ -1,4 +1,4 @@
-attach Dropbox/Sage/Schubert3.py
+%attach Dropbox/Sage/Schubert3.py
 
 def TangoBundlePn(n):
     """
